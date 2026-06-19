@@ -25,6 +25,6 @@ proc notify*(appName, title, body: string) =
     "\" with title \"" & applescriptEscaped(title) &
     "\" subtitle \"" & applescriptEscaped(appName) & "\""
   try:
-    discard execCmdEx("osascript", @["-e", script])
+    discard execCmdEx("osascript -e " & "'" & script.replace("'", "'\\''") & "'")
   except CatchableError:
     discard
