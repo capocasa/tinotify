@@ -1,8 +1,8 @@
 # Package
 
-version       = "0.1.2"
+version       = "0.1.3"
 author        = "carlo"
-description   = "Cross-platform desktop notifications via native APIs (D-Bus, NSUserNotificationCenter, Shell_NotifyIcon)"
+description   = "Cross-platform desktop notifications via native APIs (D-Bus, UNUserNotificationCenter, Shell_NotifyIcon)"
 license       = "MIT"
 srcDir        = "src"
 
