@@ -37,10 +37,12 @@ type
   WNDPROC = proc(hWnd: HWND, msg: UINT, wParam: WPARAM,
                   lParam: LPARAM): int64 {.stdcall.}
 
-  # Subset of NOTIFYICONDATAW (Unicode) covering balloon fields.
-  # Field order and sizes match the documented struct; fields after
-  # dwInfoFlags (GUID, hBalloonIcon) are omitted since cbSize tells
-  # Windows how much is valid, and we don't set them.
+  # NOTIFYICONDATAW (Unicode), V2 layout. Field order and sizes match the
+  # Windows SDK struct exactly; `szTip` is 128 WCHAR (the legacy 64-char
+  # form does not exist). Declaring it too small shrinks `cbSize` and shifts
+  # `szInfo`/`szInfoTitle`/`dwInfoFlags` to the wrong offsets, so Windows
+  # reads an empty body and drops the toast. Fields after `dwInfoFlags`
+  # (GUID, hBalloonIcon) are omitted since `cbSize` limits what Windows reads.
   NOTIFYICONDATAW {.pure, final.} = object
     cbSize: DWORD
     hWnd: HWND
@@ -48,7 +50,7 @@ type
     uFlags: UINT
     uCallbackMessage: UINT
     hIcon: HANDLE
-    szTip: array[64, Utf16Char]
+    szTip: array[128, Utf16Char]
     dwState: DWORD
     dwStateMask: DWORD
     szInfo: array[256, Utf16Char]
