@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.3"
+version       = "0.1.4"
 author        = "carlo"
 description   = "Cross-platform desktop notifications via native APIs (D-Bus, UNUserNotificationCenter, Shell_NotifyIcon)"
 license       = "MIT"
