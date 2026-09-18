@@ -72,8 +72,6 @@ type
 
 proc Shell_NotifyIconW(dwMessage: DWORD, lpData: ptr NOTIFYICONDATAW): WINBOOL
   {.importc: "Shell_NotifyIconW", dynlib: "shell32.dll", stdcall.}
-proc lstrcpyW(dst: WideCString, src: WideCString): WideCString
-  {.importc: "lstrcpyW", dynlib: "kernel32.dll", stdcall.}
 proc DefWindowProcW(hWnd: HWND, msg: UINT, wParam: WPARAM,
                     lParam: LPARAM): int64
   {.importc: "DefWindowProcW", dynlib: "user32.dll", stdcall.}
@@ -92,6 +90,16 @@ proc SetCurrentProcessExplicitAppUserModelID(appID: WideCString): int32
   {.importc: "SetCurrentProcessExplicitAppUserModelID",
      dynlib: "shell32.dll", stdcall.}
 proc sleepWin(ms: DWORD) {.importc: "Sleep", dynlib: "kernel32.dll", stdcall.}
+
+proc copyTrunc(dst: pointer, cap: int, src: string) =
+  ## Copies at most cap-1 UTF-16 units and NUL-terminates. lstrcpyW (used
+  ## here before) copies until the source NUL, so an over-long appName,
+  ## title, or body overran the NOTIFYICONDATAW fixed arrays and smashed
+  ## the caller's stack frame.
+  let w = newWideCString(src)
+  let n = min(w.len, cap - 1)
+  copyMem(dst, w[0].unsafeAddr, n * sizeof(Utf16Char))
+  cast[ptr UncheckedArray[Utf16Char]](dst)[n] = Utf16Char(0)
 
 # Set once on first use. Idempotent: Windows keeps the last value.
 var aumidSet = false
@@ -129,16 +137,14 @@ proc notify*(appName, title, body: string) =
   nid.uCallbackMessage = WmAppCallback
   nid.hIcon = LoadIconW(HINSTANCE(0),
                         cast[ptr Utf16Char](IDI_APPLICATION))
-  discard lstrcpyW(cast[WideCString](nid.szTip[0].addr),
-                   newWideCString(appName))
+  copyTrunc(nid.szTip[0].addr, nid.szTip.len, appName)
   if Shell_NotifyIconW(DWORD(NIM_ADD), nid.addr) == WINBOOL(0):
     return
 
   nid.uFlags = UINT(NIF_INFO)
   nid.dwInfoFlags = DWORD(NIIF_INFO)
-  discard lstrcpyW(cast[WideCString](nid.szInfo[0].addr), newWideCString(body))
-  discard lstrcpyW(cast[WideCString](nid.szInfoTitle[0].addr),
-                   newWideCString(title))
+  copyTrunc(nid.szInfo[0].addr, nid.szInfo.len, body)
+  copyTrunc(nid.szInfoTitle[0].addr, nid.szInfoTitle.len, title)
   discard Shell_NotifyIconW(DWORD(NIM_MODIFY), nid.addr)
 
   # Give the toast time to surface before the icon is removed.
